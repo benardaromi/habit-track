@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String      @id 
+  email      String   @unique
+  name       String?
+  habits     Habit[]
+  completions Completion[]
+  insights   Insight[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Habit {
+  id             Int      @id @default(autoincrement())
+  user           User     @relation(fields: [userId], references: [id])
+  userId         String
+  name           String
+  description    String?
+  goalType       String   // 'increase' or 'reduce'
+  targetFrequency Int     // Times per period (e.g., days or weeks)
+  category       Category @relation(fields: [categoryId], references: [id])
+  categoryId     Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  completions    Completion[]
+  insights       Insight[]
+  goalReached    Boolean  @default(false)
+  deactivationDate DateTime?
+  gracePeriodEnd DateTime?
+}
+
+model Completion {
+  id        Int      @id @default(autoincrement())
+  habit     Habit    @relation(fields: [habitId], references: [id])
+  habitId   Int
+  user      User     @relation(fields: [userId], references: [id]) // Add this line
+  userId    String   
+  timestamp DateTime @default(now())
+}
+
+model Insight {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  habit       Habit    @relation(fields: [habitId], references: [id])
+  habitId     Int
+  streak      Int      @default(0)
+  successRate Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Category {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  habits     Habit[]
+}
+
