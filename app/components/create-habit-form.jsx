@@ -55,6 +55,7 @@ export default function CreateHabitForm() {
                         <SelectItem value='work'>Work</SelectItem>
                         <SelectItem value='personal-development'>Personal Development</SelectItem>
                         <SelectItem value='fitness'>Fitness</SelectItem>
+                        <SelectItem value='school'>School</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
