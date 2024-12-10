@@ -2,6 +2,9 @@
 
 import { prisma } from "@/prisma-client"
 import { auth, currentUser } from "@clerk/nextjs/server"
+import { endOfWeek, startOfWeek } from "date-fns"
+import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 import { z } from "zod"
 
 const formSchema = z.object({
@@ -77,8 +80,62 @@ export async function recordHabit(formData) {
         })
 
         return { success: true, habit: newHabit };
+        
     } catch (error) {
         console.error('Error recording habit:', error);
         return { error: 'Failed to record habit' };
+    }
+}
+
+
+export async function logHabitCompletion( habitId) {
+    // Get the authenticated user ID
+    const { userId } = await auth()
+    if(!userId) return { error: "Not authenticated" }
+
+    try {
+        // add completion record linked to habit and user
+        await prisma.completion.create({
+            data: {
+                userId: userId,
+                habitId: habitId,
+            }
+        })
+
+        console.log('completion added')
+
+        const [completionsThisWeek, habit] = await Promise.all([
+            //  1.check if user has reached their target for the week.
+            prisma.completion.count({
+                where: {
+                    habitId: habitId,
+                    timestamp: {
+                        gte: startOfWeek(new Date()),
+                        lte: endOfWeek(new Date()),
+                    }
+                }
+            }),
+            // 2.
+            prisma.habit.findUnique({
+                where: { id: habitId }
+            })
+        ])
+
+        if (completionsThisWeek >= habit.targetFrequency) {
+            await prisma.habit.update({
+                where: { id: habitId },
+                data: { goalReached: true }
+            })
+        }
+
+        console.log(`habit logged. ${completionsThisWeek} completions. ${habit.name}`)
+
+        return { 
+            success: true, 
+            message: "Habit logged successfully!",
+        }
+
+    } catch (error) {
+        return { error: 'Logging Habit Failed' }
     }
 }
